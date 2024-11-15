@@ -1,1 +1,52 @@
-404: Not Found
+FROM ubuntu
+RUN apt update -y
+RUN apt install -y wget
+RUN apt install openjdk-11-jdk -y
+#RUN wget https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz
+#RUN tar xzvf apache-maven-3.9.9-bin.tar.gz -C /opt
+#RUN echo 'export MAVEN_HOME=/opt/maven' | sudo tee -a /etc/profile.d/maven.sh
+#RUN echo 'export PATH=$MAVEN_HOME/bin:$PATH' | sudo tee -a /etc/profile.d/maven.sh
+#RUN echo 'export PATH=$PATH:/opt/apache-maven-3.9.9/bin' >> ~/.bashrc
+#RUN source ~/.bashrc
+#RUN chmod +x /etc/profile.d/maven.sh source /etc/profile.d/maven.sh
+#RUN apt install maven -y
+#RUN touch rayyan
+ENV MAVEN_VERSION=3.9.9
+ENV MAVEN_HOME=/opt/apache-maven-$MAVEN_VERSION
+RUN wget https://dlcdn.apache.org/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz && \
+    tar xzvf apache-maven-$MAVEN_VERSION-bin.tar.gz -C /opt && \
+    rm apache-maven-$MAVEN_VERSION-bin.tar.gz
+RUN echo "export MAVEN_HOME=$MAVEN_HOME" >> /etc/profile.d/maven.sh
+RUN echo "export PATH=\$MAVEN_HOME/bin:\$PATH" >> /etc/profile.d/maven.sh
+ENV PATH=$MAVEN_HOME/bin:$PATH
+RUN mvn -version
+# Install prerequisites
+RUN apt-get update -y && \
+    apt-get install -y wget gnupg && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add Jenkins repository key and repository
+RUN wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | apt-key add - && \
+    echo "deb https://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
+
+# Update package list and install Jenkins
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends jenkins && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install OpenJDK 17 and Jenkins
+RUN apt-get update -y && \
+    apt-get install -y openjdk-17-jdk jenkins && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME environment variable (optional but recommended for Jenkins)
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+RUN export JAVA_HOME
+
+# Expose Jenkins port (optional, adjust if needed)
+EXPOSE 8080
+
+# Start Jenkins (if required)
+CMD ["java", "-jar", "/usr/share/jenkins/jenkins.war"]
